@@ -3,17 +3,18 @@ import Webcam from "react-webcam";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Text } from "@/components/ui/text";
 import { motion, AnimatePresence } from "framer-motion";
-
 import { Button } from "@/components/ui/button";
 import NumberFlow from "@number-flow/react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
-
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 // Snap Page
 const page = () => {
   const [SnapDelay, setSnapDelay] = useState<number>(3);
   const [Countdown, setCountdown] = useState<number>(3);
+  const [PhotoToCapture, setPhotoToCapture] = useState<number>(0);
+  const [PhotoAspectRatio, setPhotoAspectRatio] = useState();
   const webcamRef = useRef<Webcam>(null);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [hasCaptureImage, sethasCaptureImage] = useState<boolean>(false);
@@ -92,12 +93,11 @@ const page = () => {
     setIsCapturing(true);
     setImageData([]);
     sethasCaptureImage(false);
-    const PhotoLimit = 3;
 
     try {
-      for (let i = 0; i < PhotoLimit; i++) {
+      for (let i = 0; i < PhotoToCapture; i++) {
         await capture();
-        if (i < PhotoLimit - 1) {
+        if (i < PhotoToCapture - 1) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
@@ -107,6 +107,124 @@ const page = () => {
       setCountdown(SnapDelay);
     }
   };
+
+  if (PhotoToCapture === 0) {
+    return (
+      <div className="grid place-items-center min-h-screen mt-5 pb-32">
+        <div className="max-w-2xl w-full">
+          <Text as="h2" className=" text-center">
+            Choose Your PhotoStrip Styles
+          </Text>
+          <Text as="p" styleVariant="muted" className="mb-5 mt-1 text-center">
+            Don{"'"}t worry, you can always change and customized the final
+            product later.
+          </Text>
+          <motion.div className="flex flex-wrap gap-5">
+            <div
+              className=" p-4 flex justify-between flex-col  flex-1 dark:bg-white shadow-lg cursor-pointer"
+              onClick={() => setPhotoToCapture(4)}
+            >
+              <div className="flex flex-col gap-3">
+                <AspectRatio ratio={6 / 3} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className=" w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    1
+                  </Text>
+                </AspectRatio>
+                <AspectRatio ratio={6 / 3} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className=" w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    2
+                  </Text>
+                </AspectRatio>
+                <AspectRatio ratio={6 / 3} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className=" w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    3
+                  </Text>
+                </AspectRatio>
+                <AspectRatio ratio={6 / 3} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className=" w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    4
+                  </Text>
+                </AspectRatio>
+              </div>
+              <div className=" h-20 p-4 text-black grid place-items-center">
+                <Text as="h3">AyoSnap!</Text>
+              </div>
+            </div>
+            <div
+              className=" p-4 flex justify-between flex-col flex-1  dark:bg-white shadow-lg cursor-pointer"
+              onClick={() => setPhotoToCapture(6)}
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <AspectRatio ratio={3 / 4} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className="w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    1
+                  </Text>
+                </AspectRatio>
+                <AspectRatio ratio={3 / 4} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className="w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    2
+                  </Text>
+                </AspectRatio>
+                <AspectRatio ratio={3 / 4} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className="w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    3
+                  </Text>
+                </AspectRatio>
+                <AspectRatio ratio={3 / 4} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className="w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    4
+                  </Text>
+                </AspectRatio>
+                <AspectRatio ratio={3 / 4} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className="w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    5
+                  </Text>
+                </AspectRatio>
+                <AspectRatio ratio={3 / 4} className="h-full w-full">
+                  <Text
+                    as="h2"
+                    className="w-full h-full  bg-gray-500 grid place-items-center"
+                  >
+                    6
+                  </Text>
+                </AspectRatio>
+              </div>
+              <div className=" h-20 p-4 text-black grid place-items-center">
+                <Text as="h3">AyoSnap!</Text>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid place-items-center min-h-screen mt-5 pb-20">
@@ -162,7 +280,7 @@ const page = () => {
                   initial={{ scale: 0, opacity: 1 }}
                   animate={{
                     scale: 1,
-                    opacity: [0.7, 0.3, 0.7],
+                    opacity: Countdown === 0 ? 0 : [0.4, 0.2, 0.4],
                     transition: {
                       opacity: {
                         duration: 1,
@@ -175,8 +293,8 @@ const page = () => {
                   transition={{ duration: 0.3 }}
                   className="absolute inset-0 z-10 flex justify-center items-center bg-black rounded-lg"
                 >
-                  <Text as="h1" className="text-white">
-                    {Countdown}
+                  <Text as="h1" className="text-white shadow-lg">
+                    {Countdown === 0 ? "Snap!" : Countdown}
                   </Text>
                 </motion.div>
               )}
@@ -191,7 +309,7 @@ const page = () => {
                 Delay between Snaps
               </Text>
               <div className="flex justify-between items-center gap-4 my-2">
-                <div className="flex items-center gap-2 p-1 w-fit border rounded-lg ">
+                <div className="flex items-center gap-2 p-1 w-fit  rounded-lg ">
                   <Button
                     size={"icon"}
                     variant={"ghost"}
