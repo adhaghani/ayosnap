@@ -22,20 +22,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <body className={`${poppins.variable}  antialiased`}>
-          <header className="fixed bottom-5 md:bottom-5 right-5 md:right-0 md:w-full md:grid md:place-items-center">
+      <body className={`${poppins.variable}  antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <header className="fixed bottom-5 md:bottom-5 right-5 md:right-0 md:w-full md:grid md:place-items-center z-30">
             <HeaderDock />
           </header>
           <main className="container mx-auto">{children}</main>
           <Toaster />
-        </body>
-      </ThemeProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

@@ -8,19 +8,22 @@ import NumberFlow from "@number-flow/react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { PhotoStriprProps } from "@/components/photo-strip";
+import PhotoStrip from "@/components/photo-strip";
 // Snap Page
 const page = () => {
   const [SnapDelay, setSnapDelay] = useState<number>(3);
   const [Countdown, setCountdown] = useState<number>(3);
   const [PhotoToCapture, setPhotoToCapture] = useState<number>(0);
-  const [PhotoAspectRatio, setPhotoAspectRatio] = useState();
+  const [PhotoAspectRatio, setPhotoAspectRatio] = useState<number>(1.3333);
   const webcamRef = useRef<Webcam>(null);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [hasCaptureImage, sethasCaptureImage] = useState<boolean>(false);
   const [ImageData, setImageData] = useState<string[]>([]);
   const [isCameraAvailable, setIsCameraAvailable] = useState<boolean>(true);
-
+  const [PhotoStripData, setPhotoStripData] = useState<
+    PhotoStriprProps | undefined
+  >(undefined);
   const videoConstraints = {
     width: {
       min: 320,
@@ -33,7 +36,7 @@ const page = () => {
       max: 1440
     },
     facingMode: "user",
-    aspectRatio: { min: 1.333, ideal: 1.777777778 },
+    aspectRatio: { PhotoAspectRatio },
     frameRate: { min: 15, ideal: 30, max: 60 }
   };
 
@@ -68,6 +71,16 @@ const page = () => {
     }
   };
 
+  const handleChoose63 = () => {
+    setPhotoToCapture(4);
+    setPhotoAspectRatio(Number(6 / 3) as number);
+  };
+
+  const handleChoose34 = () => {
+    setPhotoToCapture(6);
+    setPhotoAspectRatio(Number(3 / 4) as number);
+  };
+
   const capture = useCallback(() => {
     return new Promise<void>((resolve) => {
       let currentCountdown = SnapDelay;
@@ -89,6 +102,16 @@ const page = () => {
     });
   }, [webcamRef, SnapDelay]);
 
+  useEffect(() => {
+    if (ImageData.length === PhotoToCapture && PhotoToCapture > 0) {
+      setPhotoStripData({
+        numofphotos: PhotoToCapture,
+        photos: ImageData
+      });
+      sethasCaptureImage(true);
+    }
+  }, [ImageData, PhotoToCapture]);
+
   const handleSnap = async () => {
     setIsCapturing(true);
     setImageData([]);
@@ -103,7 +126,6 @@ const page = () => {
       }
     } finally {
       setIsCapturing(false);
-      sethasCaptureImage(true);
       setCountdown(SnapDelay);
     }
   };
@@ -120,105 +142,11 @@ const page = () => {
             product later.
           </Text>
           <motion.div className="flex flex-wrap gap-5">
-            <div
-              className=" p-4 flex justify-between flex-col  flex-1 dark:bg-white shadow-lg cursor-pointer"
-              onClick={() => setPhotoToCapture(4)}
-            >
-              <div className="flex flex-col gap-3">
-                <AspectRatio ratio={6 / 3} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className=" w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    1
-                  </Text>
-                </AspectRatio>
-                <AspectRatio ratio={6 / 3} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className=" w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    2
-                  </Text>
-                </AspectRatio>
-                <AspectRatio ratio={6 / 3} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className=" w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    3
-                  </Text>
-                </AspectRatio>
-                <AspectRatio ratio={6 / 3} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className=" w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    4
-                  </Text>
-                </AspectRatio>
-              </div>
-              <div className=" h-20 p-4 text-black grid place-items-center">
-                <Text as="h3">AyoSnap!</Text>
-              </div>
+            <div className="flex-1" onClick={() => handleChoose63()}>
+              <PhotoStrip numofphotos={4} />
             </div>
-            <div
-              className=" p-4 flex justify-between flex-col flex-1  dark:bg-white shadow-lg cursor-pointer"
-              onClick={() => setPhotoToCapture(6)}
-            >
-              <div className="grid grid-cols-2 gap-3">
-                <AspectRatio ratio={3 / 4} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className="w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    1
-                  </Text>
-                </AspectRatio>
-                <AspectRatio ratio={3 / 4} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className="w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    2
-                  </Text>
-                </AspectRatio>
-                <AspectRatio ratio={3 / 4} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className="w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    3
-                  </Text>
-                </AspectRatio>
-                <AspectRatio ratio={3 / 4} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className="w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    4
-                  </Text>
-                </AspectRatio>
-                <AspectRatio ratio={3 / 4} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className="w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    5
-                  </Text>
-                </AspectRatio>
-                <AspectRatio ratio={3 / 4} className="h-full w-full">
-                  <Text
-                    as="h2"
-                    className="w-full h-full  bg-gray-500 grid place-items-center"
-                  >
-                    6
-                  </Text>
-                </AspectRatio>
-              </div>
-              <div className=" h-20 p-4 text-black grid place-items-center">
-                <Text as="h3">AyoSnap!</Text>
-              </div>
+            <div className="flex-1" onClick={() => handleChoose34()}>
+              <PhotoStrip numofphotos={6} />
             </div>
           </motion.div>
         </div>
@@ -262,7 +190,10 @@ const page = () => {
               ref={webcamRef}
               audio={false}
               screenshotFormat="image/jpeg"
-              videoConstraints={videoConstraints}
+              videoConstraints={{
+                ...videoConstraints,
+                aspectRatio: PhotoAspectRatio
+              }}
               mirrored={true}
               onUserMediaError={(err) => {
                 setIsCameraAvailable(false);
@@ -342,15 +273,8 @@ const page = () => {
           )}
 
           {hasCaptureImage && (
-            <div>
-              {ImageData.map((img, index) => (
-                <img
-                  key={index}
-                  src={img}
-                  alt={`Captured Image ${index + 1}`}
-                  className="w-full max-w-xl h-auto rounded-lg"
-                />
-              ))}
+            <div className="max-w-xl w-full">
+              <PhotoStrip data={PhotoStripData} numofphotos={4} />
             </div>
           )}
         </div>
