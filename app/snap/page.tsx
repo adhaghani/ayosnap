@@ -2,14 +2,26 @@
 import Webcam from "react-webcam";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Text } from "@/components/ui/text";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import NumberFlow from "@number-flow/react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Minus, Plus } from "lucide-react";
+import {
+  AlertCircle,
+  Minus,
+  Plus,
+  Download,
+  RotateCcw,
+  Palette,
+  Type,
+} from "lucide-react";
 import { toast } from "sonner";
 import { PhotoStriprProps } from "@/components/photo-strip";
 import PhotoStrip from "@/components/photo-strip";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 // Snap Page
 const page = () => {
   const [SnapDelay, setSnapDelay] = useState<number>(3);
@@ -24,20 +36,26 @@ const page = () => {
   const [PhotoStripData, setPhotoStripData] = useState<
     PhotoStriprProps | undefined
   >(undefined);
+  const [isCustomizing, setIsCustomizing] = useState<boolean>(false);
+  const [stripBackgroundColor, setStripBackgroundColor] =
+    useState<string>("#ffffff");
+  const [stripTextColor, setStripTextColor] = useState<string>("#000000");
+  const [stripTitle, setStripTitle] = useState<string>("");
+
   const videoConstraints = {
     width: {
       min: 320,
       ideal: 1280,
-      max: 2560
+      max: 2560,
     },
     height: {
       min: 240,
       ideal: 720,
-      max: 1440
+      max: 1440,
     },
     facingMode: "user",
     aspectRatio: { PhotoAspectRatio },
-    frameRate: { min: 15, ideal: 30, max: 60 }
+    frameRate: { min: 15, ideal: 30, max: 60 },
   };
 
   const CheckCameraAvailability = useCallback(() => {
@@ -106,11 +124,21 @@ const page = () => {
     if (ImageData.length === PhotoToCapture && PhotoToCapture > 0) {
       setPhotoStripData({
         numofphotos: PhotoToCapture,
-        photos: ImageData
+        photos: ImageData,
+        backgroundColor: stripBackgroundColor,
+        textColor: stripTextColor,
+        title: stripTitle,
       });
       sethasCaptureImage(true);
+      toast.success(`Photo strip with ${PhotoToCapture} photos is ready!`);
     }
-  }, [ImageData, PhotoToCapture]);
+  }, [
+    ImageData,
+    PhotoToCapture,
+    stripBackgroundColor,
+    stripTextColor,
+    stripTitle,
+  ]);
 
   const handleSnap = async () => {
     setIsCapturing(true);
@@ -127,6 +155,117 @@ const page = () => {
     } finally {
       setIsCapturing(false);
       setCountdown(SnapDelay);
+    }
+  };
+
+  const handleCustomize = () => {
+    setIsCustomizing(true);
+  };
+
+  const handleRetake = () => {
+    setImageData([]);
+    sethasCaptureImage(false);
+    setIsCustomizing(false);
+    setPhotoStripData(undefined);
+  };
+
+  const handleDownload = async () => {
+    if (!PhotoStripData?.photos) {
+      toast.error("No photos to download!");
+      return;
+    }
+
+    try {
+      // Create a canvas element to render the photo strip
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) return;
+
+      // Set canvas dimensions based on photo strip layout
+      const stripWidth = 400;
+      const stripHeight = PhotoToCapture === 4 ? 1000 : 800;
+      canvas.width = stripWidth;
+      canvas.height = stripHeight;
+
+      // Fill background
+      ctx.fillStyle = stripBackgroundColor;
+      ctx.fillRect(0, 0, stripWidth, stripHeight);
+
+      // Calculate dimensions for photos and text areas
+      const padding = 16;
+      const textAreaHeight = 80;
+      const titleAreaHeight = stripTitle ? 60 : 0;
+      const availableHeight =
+        stripHeight - textAreaHeight - titleAreaHeight - padding * 3;
+
+      let currentY = padding;
+
+      // Draw title if exists
+      if (stripTitle) {
+        ctx.fillStyle = stripTextColor;
+        ctx.font = "bold 24px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(stripTitle, stripWidth / 2, currentY + 35);
+        currentY += titleAreaHeight;
+      }
+
+      // Load and draw photos
+      const photoPromises = PhotoStripData.photos.map((photoSrc, index) => {
+        return new Promise<void>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            if (PhotoToCapture === 4) {
+              // Vertical layout for 4 photos
+              const photoHeight = availableHeight / 4 - padding / 4;
+              const photoWidth = stripWidth - padding * 2;
+              const y = currentY + index * (photoHeight + padding / 4);
+
+              ctx.drawImage(img, padding, y, photoWidth, photoHeight);
+            } else {
+              // Grid layout for 6 photos (2x3)
+              const photoWidth = (stripWidth - padding * 3) / 2;
+              const photoHeight = availableHeight / 3 - padding / 3;
+              const col = index % 2;
+              const row = Math.floor(index / 2);
+              const x = padding + col * (photoWidth + padding);
+              const y = currentY + row * (photoHeight + padding / 3);
+
+              ctx.drawImage(img, x, y, photoWidth, photoHeight);
+            }
+            resolve();
+          };
+          img.src = photoSrc;
+        });
+      });
+
+      // Wait for all photos to load and draw
+      await Promise.all(photoPromises);
+
+      // Draw footer text
+      const footerY = stripHeight - textAreaHeight / 2;
+      ctx.fillStyle = stripTextColor;
+      ctx.font = "bold 20px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("AyoSnap!", stripWidth / 2, footerY);
+
+      // Create download link
+      const link = document.createElement("a");
+      link.download = `ayosnap-${Date.now()}.png`;
+      link.href = canvas.toDataURL("image/png", 1.0);
+      link.click();
+
+      toast.success("Photo strip downloaded successfully!");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download photo strip. Please try again.");
+    }
+  };
+
+  const updateCustomization = (updates: Partial<PhotoStriprProps>) => {
+    if (PhotoStripData) {
+      const updatedData = { ...PhotoStripData, ...updates };
+      setPhotoStripData(updatedData);
     }
   };
 
@@ -173,68 +312,89 @@ const page = () => {
         <Text as="h1" className="text-center mb-8 font-bold">
           Lets Snap!
         </Text>
-        <motion.div
-          className={`${
-            isCapturing
-              ? "fixed z-40 grid place-items-center w-screen h-screen inset-0 bg-black/50"
-              : "max-w-xl mx-auto "
-          }`}
-        >
+        {!hasCaptureImage && (
           <motion.div
-            initial={{ scale: 1 }}
-            animate={isCapturing ? { scale: 1.3 } : { scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="relative"
+            className={`${
+              isCapturing
+                ? "fixed z-40 grid place-items-center w-screen h-screen inset-0 bg-black/50"
+                : "max-w-xl mx-auto "
+            }`}
           >
-            <Webcam
-              ref={webcamRef}
-              audio={false}
-              screenshotFormat="image/jpeg"
-              videoConstraints={{
-                ...videoConstraints,
-                aspectRatio: PhotoAspectRatio
-              }}
-              mirrored={true}
-              onUserMediaError={(err) => {
-                setIsCameraAvailable(false);
-                console.error("Webcam Error:", err);
-              }}
-              className={`${
-                isCapturing
-                  ? "w-full max-w-2xl h-auto rounded-lg z-50"
-                  : "w-full max-w-xl h-auto rounded-lg"
-              }`}
-            />
-            <AnimatePresence>
-              {isCapturing && (
-                <motion.div
-                  initial={{ scale: 0, opacity: 1 }}
-                  animate={{
-                    scale: 1,
-                    opacity: Countdown === 0 ? 0 : [0.4, 0.2, 0.4],
-                    transition: {
-                      opacity: {
-                        duration: 1,
-                        repeat: Infinity,
-                        ease: "linear"
-                      }
-                    }
-                  }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="absolute inset-0 z-10 flex justify-center items-center bg-black rounded-lg"
-                >
-                  <Text as="h1" className="text-white shadow-lg">
-                    {Countdown === 0 ? "Snap!" : Countdown}
-                  </Text>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <motion.div
+              initial={{ scale: 1 }}
+              animate={isCapturing ? { scale: 1.3 } : { scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="relative"
+            >
+              <Webcam
+                ref={webcamRef}
+                audio={false}
+                screenshotFormat="image/jpeg"
+                videoConstraints={{
+                  ...videoConstraints,
+                  aspectRatio: PhotoAspectRatio,
+                }}
+                mirrored={true}
+                onUserMediaError={(err) => {
+                  setIsCameraAvailable(false);
+                  console.error("Webcam Error:", err);
+                }}
+                className={`${
+                  isCapturing
+                    ? "w-full max-w-2xl h-auto rounded-lg z-50"
+                    : "w-full max-w-xl h-auto rounded-lg"
+                }`}
+              />
+              <AnimatePresence>
+                {isCapturing && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 1 }}
+                    animate={{
+                      scale: 1,
+                      opacity: Countdown === 0 ? 0 : [0.4, 0.2, 0.4],
+                      transition: {
+                        opacity: {
+                          duration: 1,
+                          repeat: Infinity,
+                          ease: "linear",
+                        },
+                      },
+                    }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute inset-0 z-10 flex justify-center items-center bg-black rounded-lg"
+                  >
+                    <Text as="h1" className="text-white shadow-lg">
+                      {Countdown === 0 ? "Snap!" : Countdown}
+                    </Text>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        )}
         <div className="flex flex-col justify-center items-center gap-2 mt-2">
-          {!isCapturing && (
+          {!isCapturing && !hasCaptureImage && (
             <div className="max-w-xl w-full">
+              {/* Show captured photos if any */}
+              {ImageData.length > 0 && ImageData.length < PhotoToCapture && (
+                <div className="mb-4">
+                  <Text as="p" className="font-semibold mb-2">
+                    Captured Photos ({ImageData.length}/{PhotoToCapture})
+                  </Text>
+                  <div className="flex gap-2 overflow-x-auto">
+                    {ImageData.map((img, index) => (
+                      <img
+                        key={index}
+                        src={img}
+                        alt={`Captured ${index + 1}`}
+                        className="w-16 h-16 object-cover rounded-lg border-2 border-primary"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Delay timer */}
               <Text as="p" className="font-semibold">
                 Delay between Snaps
@@ -266,16 +426,253 @@ const page = () => {
                   </Button>
                 </div>
                 <Button size={"lg"} onClick={handleSnap} disabled={isCapturing}>
-                  {isCapturing ? "Capturing..." : "Snap!"}
+                  {isCapturing
+                    ? `Capturing... (${ImageData.length}/${PhotoToCapture})`
+                    : "Snap!"}
                 </Button>
               </div>
             </div>
           )}
 
           {hasCaptureImage && (
-            <div className="max-w-xl w-full">
-              <PhotoStrip data={PhotoStripData} numofphotos={4} />
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-2 gap-6"
+            >
+              {/* Photo Strip Preview */}
+              <div className="order-2 lg:order-1">
+                <div className="mb-4">
+                  <Text as="h3" className="font-semibold mb-2">
+                    Your Photo Strip
+                  </Text>
+                  <Text as="p" styleVariant="muted" className="text-sm">
+                    Preview of your photo strip. Click customize to personalize
+                    it!
+                  </Text>
+                </div>
+                <PhotoStrip
+                  data={PhotoStripData}
+                  numofphotos={PhotoToCapture}
+                />
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleRetake}
+                    className="flex-1"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Retake
+                  </Button>
+                  <Button
+                    variant={isCustomizing ? "default" : "outline"}
+                    onClick={handleCustomize}
+                    className="flex-1"
+                  >
+                    <Palette className="w-4 h-4 mr-2" />
+                    {isCustomizing ? "Customizing" : "Customize"}
+                  </Button>
+                  <Button onClick={handleDownload} className="flex-1">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              </div>
+
+              {/* Customization Panel */}
+              {isCustomizing && (
+                <div className="order-1 lg:order-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Palette className="w-5 h-5" />
+                        Customize Your Photo Strip
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Background Color */}
+                      <div className="space-y-2">
+                        <Label htmlFor="bg-color">Background Color</Label>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            id="bg-color"
+                            type="color"
+                            value={stripBackgroundColor}
+                            onChange={(e) => {
+                              setStripBackgroundColor(e.target.value);
+                              updateCustomization({
+                                backgroundColor: e.target.value,
+                              });
+                            }}
+                            className="w-16 h-10 p-1"
+                          />
+                          <Input
+                            type="text"
+                            value={stripBackgroundColor}
+                            onChange={(e) => {
+                              setStripBackgroundColor(e.target.value);
+                              updateCustomization({
+                                backgroundColor: e.target.value,
+                              });
+                            }}
+                            className="flex-1"
+                            placeholder="#ffffff"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Text Color */}
+                      <div className="space-y-2">
+                        <Label htmlFor="text-color">Text Color</Label>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            id="text-color"
+                            type="color"
+                            value={stripTextColor}
+                            onChange={(e) => {
+                              setStripTextColor(e.target.value);
+                              updateCustomization({
+                                textColor: e.target.value,
+                              });
+                            }}
+                            className="w-16 h-10 p-1"
+                          />
+                          <Input
+                            type="text"
+                            value={stripTextColor}
+                            onChange={(e) => {
+                              setStripTextColor(e.target.value);
+                              updateCustomization({
+                                textColor: e.target.value,
+                              });
+                            }}
+                            className="flex-1"
+                            placeholder="#000000"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Title Text */}
+                      <div className="space-y-2">
+                        <Label htmlFor="strip-title">
+                          Title Text (Optional)
+                        </Label>
+                        <Input
+                          id="strip-title"
+                          type="text"
+                          value={stripTitle}
+                          onChange={(e) => {
+                            setStripTitle(e.target.value);
+                            updateCustomization({ title: e.target.value });
+                          }}
+                          placeholder="Add a title..."
+                        />
+                      </div>
+
+                      {/* Color Presets */}
+                      <div className="space-y-2">
+                        <Label>Color Presets</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setStripBackgroundColor("#ffffff");
+                              setStripTextColor("#000000");
+                              updateCustomization({
+                                backgroundColor: "#ffffff",
+                                textColor: "#000000",
+                              });
+                            }}
+                            className="h-8"
+                          >
+                            Classic
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setStripBackgroundColor("#000000");
+                              setStripTextColor("#ffffff");
+                              updateCustomization({
+                                backgroundColor: "#000000",
+                                textColor: "#ffffff",
+                              });
+                            }}
+                            className="h-8"
+                          >
+                            Dark
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setStripBackgroundColor("#f0f9ff");
+                              setStripTextColor("#1e40af");
+                              updateCustomization({
+                                backgroundColor: "#f0f9ff",
+                                textColor: "#1e40af",
+                              });
+                            }}
+                            className="h-8"
+                          >
+                            Blue
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setStripBackgroundColor("#fef7f0");
+                              setStripTextColor("#c2410c");
+                              updateCustomization({
+                                backgroundColor: "#fef7f0",
+                                textColor: "#c2410c",
+                              });
+                            }}
+                            className="h-8"
+                          >
+                            Orange
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setStripBackgroundColor("#f0fdf4");
+                              setStripTextColor("#166534");
+                              updateCustomization({
+                                backgroundColor: "#f0fdf4",
+                                textColor: "#166534",
+                              });
+                            }}
+                            className="h-8"
+                          >
+                            Green
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setStripBackgroundColor("#fef2f2");
+                              setStripTextColor("#dc2626");
+                              updateCustomization({
+                                backgroundColor: "#fef2f2",
+                                textColor: "#dc2626",
+                              });
+                            }}
+                            className="h-8"
+                          >
+                            Red
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </motion.div>
           )}
         </div>
       </div>
