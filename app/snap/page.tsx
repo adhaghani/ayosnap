@@ -41,6 +41,18 @@ const page = () => {
     useState<string>("#ffffff");
   const [stripTextColor, setStripTextColor] = useState<string>("#000000");
   const [stripTitle, setStripTitle] = useState<string>("");
+  const [selectedLayout, setSelectedLayout] = useState<LayoutKey | "">("");
+
+  // Layout configs with labels and descriptions
+  const layoutConfigs = {
+    "1x4": { num: 4, aspect: 5 / 3, label: "Layout A", desc: "4 Poses" },
+    "1x3": { num: 3, aspect: 5 / 3, label: "Layout B", desc: "3 Poses" },
+    "2x2": { num: 4, aspect: 1, label: "Layout C", desc: "2x2 Grid" },
+    "2x4": { num: 8, aspect: 5 / 3, label: "Layout D", desc: "8 Poses" },
+    "2x3": { num: 6, aspect: 4 / 3, label: "Layout E", desc: "6 Poses" },
+    "1x2": { num: 2, aspect: 5 / 3, label: "Layout F", desc: "2 Poses" },
+  } as const;
+  type LayoutKey = keyof typeof layoutConfigs;
 
   const videoConstraints = {
     width: {
@@ -87,16 +99,6 @@ const page = () => {
     } else {
       toast.info("Snap delay must be atleast 1 second");
     }
-  };
-
-  const handleChoose63 = () => {
-    setPhotoToCapture(4);
-    setPhotoAspectRatio(Number(6 / 3) as number);
-  };
-
-  const handleChoose34 = () => {
-    setPhotoToCapture(6);
-    setPhotoAspectRatio(Number(3 / 4) as number);
   };
 
   const capture = useCallback(() => {
@@ -271,23 +273,51 @@ const page = () => {
 
   if (PhotoToCapture === 0) {
     return (
-      <div className="grid place-items-center min-h-screen mt-5 pb-32">
-        <div className="max-w-2xl w-full">
-          <Text as="h2" className=" text-center">
-            Choose Your PhotoStrip Styles
+      <div className="min-h-screen w-full flex flex-col items-center justify-center py-12 mb-32">
+        <div className="max-w-4xl w-full mx-auto">
+          <Text as="h2" className="text-center mb-2 font-bold text-2xl">
+            Choose Your PhotoStrip Format
           </Text>
-          <Text as="p" styleVariant="muted" className="mb-5 mt-1 text-center">
-            Don{"'"}t worry, you can always change and customized the final
+          <Text as="p" styleVariant="muted" className="mb-8 text-center">
+            Select a layout, then click Continue. You can customize the final
             product later.
           </Text>
-          <motion.div className="flex flex-wrap gap-5">
-            <div className="flex-1" onClick={() => handleChoose63()}>
-              <PhotoStrip numofphotos={4} />
-            </div>
-            <div className="flex-1" onClick={() => handleChoose34()}>
-              <PhotoStrip numofphotos={6} />
-            </div>
-          </motion.div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 justify-center px-4">
+            {Object.entries(layoutConfigs).map(([key, cfg]) => (
+              <div
+                key={key}
+                className={`rounded-2xl shadow-md border-2 flex flex-col items-center p-4 transition-all duration-200 cursor-pointer min-w-[180px] max-w-[300px] md:max-w-none h-full md:h-fit w-full mx-auto
+                ${selectedLayout === key ? "border-primary " : "border-0"}`}
+                onClick={() => setSelectedLayout(key as LayoutKey)}
+              >
+                <div className="w-full flex justify-center">
+                  <PhotoStrip numofphotos={cfg.num} layout={key} />
+                </div>
+                <div className="mt-4 text-center">
+                  <Text as="h3" className="font-bold text-lg mb-1">
+                    {cfg.label}
+                  </Text>
+                  <Text as="p" styleVariant="muted" className="text-sm">
+                    {cfg.desc}
+                  </Text>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-center mt-10">
+            <Button
+              disabled={!selectedLayout}
+              onClick={() => {
+                if (!selectedLayout) return;
+                const cfg = layoutConfigs[selectedLayout as LayoutKey];
+                setPhotoToCapture(cfg.num);
+                setPhotoAspectRatio(cfg.aspect);
+              }}
+              size="lg"
+            >
+              Continue
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -309,10 +339,12 @@ const page = () => {
             </AlertDescription>
           </Alert>
         )}
-        <Text as="h1" className="text-center mb-8 font-bold">
-          Lets Snap!
-        </Text>
-        {!hasCaptureImage && (
+        {!hasCaptureImage && isCameraAvailable && (
+          <Text as="h1" className="text-center mb-8 font-bold">
+            Lets Snap!
+          </Text>
+        )}
+        {!hasCaptureImage && isCameraAvailable && (
           <motion.div
             className={`${
               isCapturing
@@ -396,41 +428,49 @@ const page = () => {
               )}
 
               {/* Delay timer */}
-              <Text as="p" className="font-semibold">
-                Delay between Snaps
-              </Text>
-              <div className="flex justify-between items-center gap-4 my-2">
-                <div className="flex items-center gap-2 p-1 w-fit  rounded-lg ">
-                  <Button
-                    size={"icon"}
-                    variant={"ghost"}
-                    onClick={handleReduceSnapDelay}
-                    disabled={isCapturing}
-                  >
-                    <Minus />
-                  </Button>
-                  <div className="flex gap-2 items-center">
-                    <NumberFlow
-                      value={SnapDelay}
-                      className="w-fit text-center font-bold text-2xl"
-                    />
-                    <Text as="p">Seconds</Text>
+              {isCameraAvailable && (
+                <>
+                  <Text as="p" className="font-semibold">
+                    Delay between Snaps
+                  </Text>
+                  <div className="flex justify-between items-center gap-4 my-2">
+                    <div className="flex items-center gap-2 p-1 w-fit  rounded-lg ">
+                      <Button
+                        size={"icon"}
+                        variant={"ghost"}
+                        onClick={handleReduceSnapDelay}
+                        disabled={isCapturing}
+                      >
+                        <Minus />
+                      </Button>
+                      <div className="flex gap-2 items-center">
+                        <NumberFlow
+                          value={SnapDelay}
+                          className="w-fit text-center font-bold text-2xl"
+                        />
+                        <Text as="p">Seconds</Text>
+                      </div>
+                      <Button
+                        onClick={handleIncreaseSnapDelay}
+                        size={"icon"}
+                        variant={"ghost"}
+                        disabled={isCapturing}
+                      >
+                        <Plus />
+                      </Button>
+                    </div>
+                    <Button
+                      size={"lg"}
+                      onClick={handleSnap}
+                      disabled={isCapturing}
+                    >
+                      {isCapturing
+                        ? `Capturing... (${ImageData.length}/${PhotoToCapture})`
+                        : "Snap!"}
+                    </Button>
                   </div>
-                  <Button
-                    onClick={handleIncreaseSnapDelay}
-                    size={"icon"}
-                    variant={"ghost"}
-                    disabled={isCapturing}
-                  >
-                    <Plus />
-                  </Button>
-                </div>
-                <Button size={"lg"} onClick={handleSnap} disabled={isCapturing}>
-                  {isCapturing
-                    ? `Capturing... (${ImageData.length}/${PhotoToCapture})`
-                    : "Snap!"}
-                </Button>
-              </div>
+                </>
+              )}
             </div>
           )}
 
@@ -452,13 +492,8 @@ const page = () => {
                     it!
                   </Text>
                 </div>
-                <PhotoStrip
-                  data={PhotoStripData}
-                  numofphotos={PhotoToCapture}
-                />
-
                 {/* Action Buttons */}
-                <div className="flex gap-2 mt-4">
+                <div className="flex gap-2 my-4">
                   <Button
                     variant="outline"
                     onClick={handleRetake}
@@ -480,11 +515,18 @@ const page = () => {
                     Download
                   </Button>
                 </div>
+                <div className="flex mt-4 justify-center">
+                  <PhotoStrip
+                    data={PhotoStripData}
+                    numofphotos={PhotoToCapture}
+                    layout={selectedLayout}
+                  />
+                </div>
               </div>
 
               {/* Customization Panel */}
               {isCustomizing && (
-                <div className="order-1 lg:order-2">
+                <div className="order-1 lg:order-2 mt-20">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
