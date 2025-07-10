@@ -271,6 +271,27 @@ const page = () => {
     }
   };
 
+  // Helper: get aspect ratio for webcam based on selectedLayout
+  const getWebcamAspect = () => {
+    if (!selectedLayout) return 4 / 3;
+    switch (selectedLayout) {
+      case "2x2":
+        return 1; // square
+      case "1x4":
+        return 3 / 4; // tall
+      case "1x3":
+        return 3 / 4;
+      case "1x2":
+        return 3 / 4;
+      case "2x4":
+        return 3 / 4;
+      case "2x3":
+        return 3 / 4;
+      default:
+        return 4 / 3;
+    }
+  };
+
   if (PhotoToCapture === 0) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center py-12 mb-32">
@@ -286,7 +307,7 @@ const page = () => {
             {Object.entries(layoutConfigs).map(([key, cfg]) => (
               <div
                 key={key}
-                className={`rounded-2xl shadow-md border-2 flex flex-col items-center p-4 transition-all duration-200 cursor-pointer min-w-[180px] max-w-[300px] md:max-w-none h-full md:h-fit w-full mx-auto
+                className={`rounded-2xl border-2 flex flex-col items-center p-4 transition-all duration-200 cursor-pointer min-w-[180px] max-w-[300px] md:max-w-none h-full md:h-fit w-full mx-auto
                 ${selectedLayout === key ? "border-primary " : "border-0"}`}
                 onClick={() => setSelectedLayout(key as LayoutKey)}
               >
@@ -358,25 +379,26 @@ const page = () => {
               transition={{ duration: 0.3 }}
               className="relative"
             >
-              <Webcam
-                ref={webcamRef}
-                audio={false}
-                screenshotFormat="image/jpeg"
-                videoConstraints={{
-                  ...videoConstraints,
-                  aspectRatio: PhotoAspectRatio,
-                }}
-                mirrored={true}
-                onUserMediaError={(err) => {
-                  setIsCameraAvailable(false);
-                  console.error("Webcam Error:", err);
-                }}
-                className={`${
-                  isCapturing
-                    ? "w-full max-w-2xl h-auto rounded-lg z-50"
-                    : "w-full max-w-xl h-auto rounded-lg"
-                }`}
-              />
+              <div
+                style={{ aspectRatio: getWebcamAspect() }}
+                className="w-full max-w-xl mx-auto bg-black rounded-lg overflow-hidden flex items-center justify-center"
+              >
+                <Webcam
+                  ref={webcamRef}
+                  audio={false}
+                  screenshotFormat="image/jpeg"
+                  videoConstraints={{
+                    ...videoConstraints,
+                    aspectRatio: getWebcamAspect(),
+                  }}
+                  mirrored={true}
+                  onUserMediaError={(err) => {
+                    setIsCameraAvailable(false);
+                    console.error("Webcam Error:", err);
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <AnimatePresence>
                 {isCapturing && (
                   <motion.div
