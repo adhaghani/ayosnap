@@ -21,6 +21,13 @@ import PhotoStrip from "@/components/photo-strip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 // Snap Page
 const page = () => {
@@ -303,28 +310,33 @@ const page = () => {
             Select a layout, then click Continue. You can customize the final
             product later.
           </Text>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 justify-center px-4">
-            {Object.entries(layoutConfigs).map(([key, cfg]) => (
-              <div
-                key={key}
-                className={`rounded-2xl border-2 flex flex-col items-center p-4 transition-all duration-200 cursor-pointer min-w-[180px] max-w-[300px] md:max-w-none h-full md:h-fit w-full mx-auto
-                ${selectedLayout === key ? "border-primary " : "border-0"}`}
-                onClick={() => setSelectedLayout(key as LayoutKey)}
-              >
-                <div className="w-full flex justify-center">
-                  <PhotoStrip numofphotos={cfg.num} layout={key} />
-                </div>
-                <div className="mt-4 text-center">
-                  <Text as="h3" className="font-bold text-lg mb-1">
-                    {cfg.label}
-                  </Text>
-                  <Text as="p" styleVariant="muted" className="text-sm">
-                    {cfg.desc}
-                  </Text>
-                </div>
-              </div>
-            ))}
-          </div>
+          <Carousel className="px-10">
+            <CarouselContent className=" w-full max-w-[400px]">
+              {Object.entries(layoutConfigs).map(([key, cfg]) => (
+                <CarouselItem
+                  key={key}
+                  onClick={() => setSelectedLayout(key as LayoutKey)}
+                >
+                  <div
+                    className={`rounded-2xl border-2 p-4 flex flex-col h-fit items-center duration-200 cursor-pointer min-w-[140px] lg:max-w-[600px] mx-auto bg-background
+    ${selectedLayout === key ? "border-primary " : "border-0"}`}
+                  >
+                    <div className="w-full max-w-[250px] h-full flex items-center justify-center mx-auto overflow-hidden">
+                      <PhotoStrip numofphotos={cfg.num} layout={key} />
+                    </div>
+                    <div className="mt-2 text-center">
+                      <Text as="h3" className="font-bold text-base mb-1">
+                        {cfg.label}
+                      </Text>
+                      <Text as="p" styleVariant="muted" className="text-xs">
+                        {cfg.desc}
+                      </Text>
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
           <div className="flex justify-center mt-10">
             <Button
               disabled={!selectedLayout}
